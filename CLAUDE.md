@@ -1,5 +1,8 @@
 # Dinopop Corn Inventory — CLAUDE.md
 
+## ภาษา
+ตอบกลับเป็นภาษาไทยเสมอ ยกเว้น code, technical term, และชื่อ library/framework
+
 ## Skill Routing
 อ่าน `skills/router.md` ก่อนเริ่มงานทุกครั้ง — ไฟล์นี้กำหนดว่า context ไหนต้องใช้ skill อะไร และต้องรีวิวอะไรตอนท้าย session
 
