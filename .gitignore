@@ -10,8 +10,11 @@ backend/vendor/
 backend/*.exe
 
 # Node
+node_modules/
 frontend/node_modules/
 frontend/.next/
+playwright-report/
+test-results/
 
 # OS
 .DS_Store

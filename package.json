@@ -1,0 +1,29 @@
+{
+  "name": "inventory-dino",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:mobile": "playwright test --project=mobile"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mesara1/Inventory-Dino.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Mesara1/Inventory-Dino/issues"
+  },
+  "homepage": "https://github.com/Mesara1/Inventory-Dino#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}
