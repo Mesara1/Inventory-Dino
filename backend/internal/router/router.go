@@ -31,6 +31,14 @@ func Setup(h *handler.Handler, jwtMiddleware gin.HandlerFunc) *gin.Engine {
 			users.PATCH("/:id/password", h.ChangePassword)
 			users.DELETE("/:id", h.DeactivateUser)
 		}
+
+		categories := protected.Group("/categories")
+		{
+			categories.GET("", h.ListCategories)
+			categories.POST("", middleware.AdminOnly(), h.CreateCategory)
+			categories.PUT("/:id", middleware.AdminOnly(), h.UpdateCategory)
+			categories.DELETE("/:id", middleware.AdminOnly(), h.DeleteCategory)
+		}
 	}
 
 	return r
