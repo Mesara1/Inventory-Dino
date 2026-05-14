@@ -74,19 +74,33 @@ type Item struct {
 
 ## Prevent Negative Quantity
 ```go
-// ใช้ DB transaction + row lock เพื่อป้องกัน race condition
-func (r *itemRepo) UpdateQuantity(id uint, delta int) error {
-    return r.db.Transaction(func(tx *gorm.DB) error {
-        var item Item
-        if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&item, id).Error; err != nil {
+// ใช้ DB transaction + SELECT FOR UPDATE เพื่อป้องกัน race condition
+// GORM v2: ใช้ clause.Locking ไม่ใช่ Set("gorm:query_option", "FOR UPDATE") ซึ่งใช้ไม่ได้ใน v2
+
+import "gorm.io/gorm/clause"
+
+var errNegativeQty = errors.New("quantity cannot be negative")
+
+func (h *Handler) UpdateItemQuantity(id, delta int) error {
+    var item Item
+    return h.db.Transaction(func(tx *gorm.DB) error {
+        if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+            Where("item_id = ? AND deleted_at IS NULL", id).
+            First(&item).Error; err != nil {
             return err
         }
         newQty := item.ItemQty + delta
         if newQty < 0 {
-            return errors.New("quantity cannot be negative")
+            return errNegativeQty
         }
         return tx.Model(&item).Update("item_quantity", newQty).Error
     })
+}
+
+// ตรวจสอบ error ภายหลัง
+if errors.Is(txErr, errNegativeQty) {
+    response.BadRequest(c, "quantity cannot be negative")
+    return
 }
 ```
 
