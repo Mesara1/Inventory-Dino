@@ -1,6 +1,6 @@
 // api.js — Real API client + field mappers (UI format ↔ API format)
 
-const API_BASE = 'http://localhost:8080/api/v1';
+const API_BASE = '/api/v1';
 
 async function apiFetch(path, opts = {}) {
   const { body, ...rest } = opts;
