@@ -2,6 +2,7 @@ package router
 
 import (
 	"inventory-dino/internal/handler"
+	"inventory-dino/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,6 +21,16 @@ func Setup(h *handler.Handler, jwtMiddleware gin.HandlerFunc) *gin.Engine {
 	{
 		protected.POST("/auth/logout", h.Logout)
 		protected.GET("/auth/me", h.Me)
+
+		users := protected.Group("/users")
+		{
+			users.GET("", middleware.AdminOnly(), h.ListUsers)
+			users.POST("", middleware.AdminOnly(), h.CreateUser)
+			users.GET("/:id", h.GetUser)
+			users.PUT("/:id", h.UpdateUser)
+			users.PATCH("/:id/password", h.ChangePassword)
+			users.DELETE("/:id", h.DeactivateUser)
+		}
 	}
 
 	return r
