@@ -1,5 +1,11 @@
 // app.jsx — Shell + App root (connected to real API)
 
+const TWEAK_DEFAULTS = {
+  primary:    '#E5A12A',
+  primaryInk: '#2a1f0d',
+  density:    'regular',
+};
+
 const NAV_ITEMS = [
   { key: 'dashboard',  label: 'แดชบอร์ด',     icon: I.Home,   roles: ['admin', 'user'] },
   { key: 'categories', label: 'ประเภทสินค้า', icon: I.Tag,    roles: ['admin'] },
