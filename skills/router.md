@@ -14,6 +14,7 @@ Claude อ่านไฟล์นี้และ apply skill ที่ตรง
 | JWT, login/logout, bcrypt, cookie, protected route | `skills/auth-jwt.md` |
 | Next.js component, React Query, Tailwind, API call, middleware.ts | `skills/nextjs-frontend.md` |
 | SQL schema, migration, query, GORM tag, DB index | `skills/mysql-schema.md` |
+| เขียน test, รัน test, regression, E2E, Playwright | `skills/testing.md` |
 
 **วิธีใช้:** ก่อนเขียนโค้ดในแต่ละ domain อ่าน skill ที่เกี่ยวข้องก่อน เพื่อให้ pattern และ convention สอดคล้องกันตลอด project
 

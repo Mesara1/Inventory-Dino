@@ -798,8 +798,9 @@ a { color: inherit; }
 .qty-modal__mode-btn:last-child.is-on  { color: var(--color-danger); }
 
 .qty-modal__pad {
-  display: grid; grid-template-columns: 50px 1fr 50px; gap: 8px;
+  display: grid; grid-template-columns: 50px minmax(0, 1fr) 50px; gap: 8px;
   align-items: stretch;
+  min-width: 0;
 }
 .qty-modal__step {
   border: 1px solid var(--border-strong); background: var(--surface);

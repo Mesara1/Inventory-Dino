@@ -249,12 +249,12 @@ func (h *Handler) DeleteItem(c *gin.Context) {
 		return
 	}
 
-	h.db.Delete(&item)
-
-	itemID := uint(id)
-	h.writeLog(claims.UserID, &itemID, model.ActionDeleteItem, model.JSONMap{
+	// เขียน log ก่อน delete เพราะหลัง delete แล้ว FK จะ reject
+	h.writeLog(claims.UserID, &item.ItemID, model.ActionDeleteItem, model.JSONMap{
 		"item_name": item.ItemName,
 	}, nil)
+
+	h.db.Delete(&item)
 
 	response.Success(c, nil)
 }
