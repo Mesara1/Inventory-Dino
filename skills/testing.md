@@ -68,17 +68,18 @@ func TestSomething(t *testing.T) {
 
 ## Frontend: E2E Tests (Playwright) — ต้องติดตั้ง Node.js ก่อน
 
-### ติดตั้ง (ทำครั้งเดียว)
-```bash
-npm init -y
+### ติดตั้ง (ทำครั้งเดียวแล้ว)
+```powershell
 npm install -D @playwright/test
-npx playwright install chromium
+node node_modules/@playwright/test/cli.js install chromium
 ```
 
-### รัน
-```bash
-npx playwright test
-npx playwright test --headed   # เห็น browser
+### รัน (ต้องเปิด server ก่อน: go run cmd/main.go)
+```powershell
+cd C:\Users\Meen\Desktop\inventory-dino
+node node_modules/@playwright/test/cli.js test
+node node_modules/@playwright/test/cli.js test --headed   # เห็น browser
+node node_modules/@playwright/test/cli.js test --project=mobile
 ```
 
 ### Test cases ที่ควรมี (TODO เมื่อมี Node.js)
