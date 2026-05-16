@@ -147,7 +147,8 @@ function App() {
   const [catModal,      setCatModal]      = React.useState({ open: false, mode: 'add', category: null });
   const [delCatModal,   setDelCatModal]   = React.useState({ open: false, category: null });
   const [userModal,     setUserModal]     = React.useState({ open: false, mode: 'add', user: null });
-  const [deacUserModal, setDeacUserModal] = React.useState({ open: false, user: null });
+  const [deacUserModal,    setDeacUserModal]    = React.useState({ open: false, user: null });
+  const [permDelUserModal, setPermDelUserModal] = React.useState({ open: false, user: null });
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   // ── Auth handlers ─────────────────────────────────────────────────────────
@@ -295,6 +296,14 @@ function App() {
     }
   };
 
+  const handlePermanentDeleteUser  = (u) => setPermDelUserModal({ open: true, user: u });
+  const confirmPermanentDeleteUser = async (password) => {
+    await API.users.permanentDelete(Number(permDelUserModal.user.id), password);
+    setUsers(s => s.filter(x => x.id !== permDelUserModal.user.id));
+    toast.success(`ลบบัญชี ${permDelUserModal.user.firstName} ออกจากระบบถาวรแล้ว`);
+    setPermDelUserModal({ open: false, user: null });
+  };
+
   // ── Profile handlers ──────────────────────────────────────────────────────
   const handleSaveProfile = async (info) => {
     const updated = await API.users.update(Number(me.id), {
@@ -365,7 +374,8 @@ function App() {
               users={users}
               onAdd={handleAddUser}
               onEdit={handleEditUser}
-              onDeactivate={handleDeactivateUser}/>
+              onDeactivate={handleDeactivateUser}
+              onPermanentDelete={handlePermanentDeleteUser}/>
           )}
           {page === 'profile' && (
             <ProfilePage
@@ -446,6 +456,10 @@ function App() {
           ผู้ใช้รายนี้จะไม่สามารถเข้าสู่ระบบได้อีก</>}
         confirmLabel="ปิดบัญชี"
         danger/>
+      <PermanentDeleteUserModal
+        open={permDelUserModal.open} user={permDelUserModal.user}
+        onClose={() => setPermDelUserModal({ open: false, user: null })}
+        onConfirm={confirmPermanentDeleteUser}/>
 
       <TweaksPanel title="Tweaks">
         <TweakSection label="Theme">

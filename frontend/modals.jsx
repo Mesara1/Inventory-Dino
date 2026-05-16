@@ -340,7 +340,49 @@ function CategoryFormModal({ open, mode, category, onClose, onSave, existingName
   );
 }
 
+function PermanentDeleteUserModal({ open, user, onClose, onConfirm }) {
+  const [pw, setPw] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => { if (open) { setPw(''); setErr(''); setLoading(false); } }, [open]);
+
+  const submit = async () => {
+    if (!pw) { setErr('กรุณายืนยันด้วยรหัสผ่าน'); return; }
+    setLoading(true);
+    try {
+      await onConfirm(pw);
+    } catch (e) {
+      setErr(e.message || 'รหัสผ่านไม่ถูกต้อง');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} size="sm" tone="danger"
+           title="ลบบัญชีถาวร"
+           footer={
+             <>
+               <Button variant="ghost" onClick={onClose}>ยกเลิก</Button>
+               <Button variant="danger" loading={loading} onClick={submit}>ลบถาวร</Button>
+             </>
+           }>
+      <div className="confirm">
+        <div className="confirm__icon"><I.Alert size={22}/></div>
+        <p className="confirm__msg">
+          คุณกำลังลบบัญชี <strong>"{user?.firstName} {user?.lastName}"</strong> ออกจากระบบถาวร
+          ข้อมูลทั้งหมดจะหายไปและไม่สามารถกู้คืนได้
+        </p>
+      </div>
+      <Field label="ยืนยันรหัสผ่านผู้ดูแล" error={err} required>
+        <PasswordInput value={pw} onChange={(e) => { setPw(e.target.value); setErr(''); }}
+                       placeholder="รหัสผ่านบัญชี Admin"/>
+      </Field>
+    </Modal>
+  );
+}
+
 Object.assign(window, {
   ItemFormModal, UpdateQtyModal, DeleteItemModal,
-  UserFormModal, CategoryFormModal,
+  UserFormModal, CategoryFormModal, PermanentDeleteUserModal,
 });

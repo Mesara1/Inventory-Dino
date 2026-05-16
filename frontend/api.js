@@ -82,7 +82,8 @@ const API = {
     create:         (data)     => apiFetch('/users',             { method: 'POST',  body: data }).then(mapUser),
     update:         (id, data) => apiFetch(`/users/${id}`,       { method: 'PUT',   body: data }).then(mapUser),
     changePassword: (id, data) => apiFetch(`/users/${id}/password`, { method: 'PATCH', body: data }),
-    deactivate:     (id)       => apiFetch(`/users/${id}`,       { method: 'DELETE' }),
+    deactivate:        (id)            => apiFetch(`/users/${id}`,           { method: 'DELETE' }),
+    permanentDelete:   (id, password)  => apiFetch(`/users/${id}/permanent`, { method: 'DELETE', body: { password } }),
   },
 };
 

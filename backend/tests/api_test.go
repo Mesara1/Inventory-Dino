@@ -234,3 +234,41 @@ func TestDeactivateLastAdmin_Blocked(t *testing.T) {
 		t.Errorf("TC-011 FAIL: expected 400, got %d", resp.StatusCode)
 	}
 }
+
+// ── TC-012 ~ TC-013: Permanent Delete User ────────────────────────────────────
+
+func TestPermanentDelete_ActiveUser_Blocked(t *testing.T) {
+	admin := loginAs(t, "admin@dinopop.com", "admin1234")
+	createResp := doPost(admin, "/api/v1/users", map[string]any{
+		"username": "perm-test-" + suffix() + "@dinopop.com",
+		"password": "test1234", "firstname": "Test", "role": "user",
+	})
+	userID := fid(parseData(createResp)["user_id"].(float64))
+
+	resp := doRequest(admin, "DELETE", "/api/v1/users/"+userID+"/permanent",
+		map[string]string{"password": "admin1234"})
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("TC-012 FAIL: expected 400, got %d", resp.StatusCode)
+	}
+	// cleanup
+	doRequest(admin, "DELETE", "/api/v1/users/"+userID, nil)
+	doRequest(admin, "DELETE", "/api/v1/users/"+userID+"/permanent",
+		map[string]string{"password": "admin1234"})
+}
+
+func TestPermanentDelete_DeactivatedUser_Success(t *testing.T) {
+	admin := loginAs(t, "admin@dinopop.com", "admin1234")
+	createResp := doPost(admin, "/api/v1/users", map[string]any{
+		"username": "perm-del-" + suffix() + "@dinopop.com",
+		"password": "test1234", "firstname": "ToDelete", "role": "user",
+	})
+	userID := fid(parseData(createResp)["user_id"].(float64))
+
+	doRequest(admin, "DELETE", "/api/v1/users/"+userID, nil)
+
+	resp := doRequest(admin, "DELETE", "/api/v1/users/"+userID+"/permanent",
+		map[string]string{"password": "admin1234"})
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("TC-013 FAIL: expected 200, got %d", resp.StatusCode)
+	}
+}

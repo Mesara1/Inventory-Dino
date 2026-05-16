@@ -224,3 +224,45 @@ func (h *Handler) DeactivateUser(c *gin.Context) {
 
 	response.Success(c, nil)
 }
+
+func (h *Handler) PermanentDeleteUser(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "invalid id")
+		return
+	}
+
+	var req struct {
+		Password string `json:"password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "password required")
+		return
+	}
+
+	claims := c.MustGet("claims").(*auth.Claims)
+	var admin model.User
+	if err := h.db.First(&admin, claims.UserID).Error; err != nil {
+		response.InternalError(c)
+		return
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(req.Password)); err != nil {
+		response.Error(c, http.StatusUnauthorized, "incorrect password")
+		return
+	}
+
+	var user model.User
+	if err := h.db.Where("user_id = ? AND deleted_at IS NOT NULL", id).First(&user).Error; err != nil {
+		response.Error(c, http.StatusBadRequest, "user not found or not deactivated yet")
+		return
+	}
+
+	h.db.Unscoped().Delete(&user)
+
+	h.writeLog(claims.UserID, nil, model.ActionDeactivateUser, model.JSONMap{
+		"username":        user.Username,
+		"permanent_delete": true,
+	}, nil)
+
+	response.Success(c, nil)
+}

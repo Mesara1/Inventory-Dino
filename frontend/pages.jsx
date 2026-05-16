@@ -466,7 +466,7 @@ function CategoriesPage({ categories, items, onAdd, onEdit, onDelete }) {
 }
 
 // ── Users Page ─────────────────────────────────────────────────────────────
-function UsersPage({ users, onAdd, onEdit, onDeactivate }) {
+function UsersPage({ users, onAdd, onEdit, onDeactivate, onPermanentDelete }) {
   return (
     <div className="page">
       <PageHeader
@@ -518,15 +518,25 @@ function UsersPage({ users, onAdd, onEdit, onDeactivate }) {
                 </td>
                 <td className="td--right">
                   <div className="row-actions">
-                    <button className="icon-btn" onClick={() => onEdit(u)} aria-label="แก้ไข">
-                      <I.Edit size={16}/>
-                    </button>
-                    <button className="icon-btn icon-btn--danger"
-                            onClick={() => u.active && onDeactivate(u)}
-                            disabled={!u.active}
-                            aria-label="ปิดบัญชี">
-                      <I.Trash size={16}/>
-                    </button>
+                    {u.active ? (
+                      <>
+                        <button className="icon-btn" onClick={() => onEdit(u)} aria-label="แก้ไข">
+                          <I.Edit size={16}/>
+                        </button>
+                        <button className="icon-btn icon-btn--danger"
+                                onClick={() => onDeactivate(u)}
+                                aria-label="ปิดบัญชี">
+                          <I.Trash size={16}/>
+                        </button>
+                      </>
+                    ) : (
+                      <button className="icon-btn icon-btn--danger"
+                              onClick={() => onPermanentDelete(u)}
+                              title="ลบออกจากระบบถาวร"
+                              aria-label="ลบถาวร">
+                        <I.Trash size={16}/>
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -553,10 +563,17 @@ function UsersPage({ users, onAdd, onEdit, onDeactivate }) {
               <span>{u.active ? 'ใช้งานอยู่' : 'ปิดบัญชี'}</span>
             </div>
             <div className="user-card__actions">
-              <Button variant="ghost" size="sm" onClick={() => onEdit(u)}
-                      icon={<I.Edit size={14}/>}>แก้ไข</Button>
-              <Button variant="ghost-danger" size="sm" onClick={() => onDeactivate(u)}
-                      icon={<I.Trash size={14}/>} disabled={!u.active}>ปิดบัญชี</Button>
+              {u.active ? (
+                <>
+                  <Button variant="ghost" size="sm" onClick={() => onEdit(u)}
+                          icon={<I.Edit size={14}/>}>แก้ไข</Button>
+                  <Button variant="ghost-danger" size="sm" onClick={() => onDeactivate(u)}
+                          icon={<I.Trash size={14}/>}>ปิดบัญชี</Button>
+                </>
+              ) : (
+                <Button variant="ghost-danger" size="sm" onClick={() => onPermanentDelete(u)}
+                        icon={<I.Trash size={14}/>}>ลบถาวร</Button>
+              )}
             </div>
           </Card>
         ))}
