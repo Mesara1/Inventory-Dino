@@ -1092,13 +1092,18 @@ a { color: inherit; }
 .show-mobile { display: none !important; }
 
 @media (max-width: 880px) {
-  .app { grid-template-columns: 1fr; }
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    min-height: 100dvh;
+  }
   .sidebar { display: none; }
   .main {
     padding: var(--pad-4) var(--pad-4)
              calc(var(--bottomnav-h) + var(--pad-4) + 12px + env(safe-area-inset-bottom, 0px));
     padding-left:  calc(var(--pad-4) + env(safe-area-inset-left, 0px));
     padding-right: calc(var(--pad-4) + env(safe-area-inset-right, 0px));
+    min-height: 0;
   }
   .bottomnav { display: flex; }
   .topbar { display: flex; }
