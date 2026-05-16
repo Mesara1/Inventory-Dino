@@ -10,7 +10,7 @@ import (
 func Setup(h *handler.Handler, jwtMiddleware gin.HandlerFunc) *gin.Engine {
 	r := gin.Default()
 
-	r.Use(corsMiddleware())
+	r.Use(corsMiddleware(h.AllowedOrigin()))
 
 	v1 := r.Group("/api/v1")
 
@@ -54,9 +54,9 @@ func Setup(h *handler.Handler, jwtMiddleware gin.HandlerFunc) *gin.Engine {
 	return r
 }
 
-func corsMiddleware() gin.HandlerFunc {
+func corsMiddleware(allowedOrigin string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "http://localhost:3000")
+		c.Header("Access-Control-Allow-Origin", allowedOrigin)
 		c.Header("Access-Control-Allow-Credentials", "true")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")

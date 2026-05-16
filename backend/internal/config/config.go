@@ -8,13 +8,14 @@ import (
 )
 
 type Config struct {
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	JWTSecret  string
-	Port       string
+	DBHost        string
+	DBPort        string
+	DBUser        string
+	DBPassword    string
+	DBName        string
+	JWTSecret     string
+	Port          string
+	AllowedOrigin string
 }
 
 func Load() *Config {
@@ -27,8 +28,9 @@ func Load() *Config {
 		DBUser:     getEnv("DB_USER", "root"),
 		DBPassword: getEnv("DB_PASSWORD", "root"),
 		DBName:     getEnv("DB_NAME", "inventory_db"),
-		JWTSecret:  getEnv("JWT_SECRET", "changeme"),
-		Port:       getEnv("PORT", "8080"),
+		JWTSecret:     getEnv("JWT_SECRET", "changeme"),
+		Port:          getEnv("PORT", "8080"),
+		AllowedOrigin: getEnv("ALLOWED_ORIGIN", "http://localhost:3000"),
 	}
 }
 

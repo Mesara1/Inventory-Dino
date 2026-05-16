@@ -1,6 +1,9 @@
 // api.js — Real API client + field mappers (UI format ↔ API format)
 
-const API_BASE = 'http://localhost:8080/api/v1';
+// Dev (port 3000) → ชี้ไป backend โดยตรง | Prod (port 80) → ผ่าน nginx
+const API_BASE = window.location.port === '3000'
+  ? 'http://localhost:8080/api/v1'
+  : '/api/v1';
 
 async function apiFetch(path, opts = {}) {
   const { body, ...rest } = opts;
