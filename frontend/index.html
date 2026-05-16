@@ -4,6 +4,15 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dinopop Corn — Inventory</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#E5A12A"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Dinopop"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
@@ -20,5 +29,13 @@
   <script type="text/babel" src="modals.jsx"></script>
   <script type="text/babel" src="pages.jsx"></script>
   <script type="text/babel" src="app.jsx"></script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  </script>
 </body>
 </html>
