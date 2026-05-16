@@ -1,8 +1,9 @@
 // api.js — Real API client + field mappers (UI format ↔ API format)
 
-// Dev (port 3000) → ชี้ไป backend โดยตรง | Prod (port 80) → ผ่าน nginx
+// Dev (port 3000) → ชี้ไป backend โดยตรง (ใช้ hostname จริง รองรับ mobile บน LAN)
+// Prod (port 80) → ผ่าน nginx
 const API_BASE = window.location.port === '3000'
-  ? 'http://localhost:8080/api/v1'
+  ? `http://${window.location.hostname}:8080/api/v1`
   : '/api/v1';
 
 async function apiFetch(path, opts = {}) {
