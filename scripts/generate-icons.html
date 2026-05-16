@@ -2,10 +2,10 @@
 <html>
 <head><title>Generate PWA Icons</title></head>
 <body>
-<h2>Dinopop Corn — Icon Generator</h2>
-<p>กด Generate แล้ว save ทั้ง 2 ไฟล์ไปไว้ที่ <code>frontend/icons/</code></p>
-<button onclick="generate()">Generate Icons</button>
-<div id="output" style="margin-top:20px;display:flex;gap:20px;align-items:flex-start"></div>
+<h2>Dinopop Corn — PWA Asset Generator</h2>
+<p>กด Generate แล้ว save ทุกไฟล์ไปไว้ที่ <code>frontend/icons/</code></p>
+<button onclick="generateAll()">Generate All</button>
+<div id="output" style="margin-top:20px;display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start"></div>
 
 <script>
 function drawIcon(size) {
@@ -15,7 +15,6 @@ function drawIcon(size) {
   const ctx = canvas.getContext('2d');
   const r = size * 0.18;
 
-  // Background rounded rect
   ctx.beginPath();
   ctx.moveTo(r, 0);
   ctx.lineTo(size - r, 0);
@@ -30,12 +29,10 @@ function drawIcon(size) {
   ctx.fillStyle = '#E5A12A';
   ctx.fill();
 
-  // Popcorn bucket shape
   const cx = size / 2;
   const cy = size / 2;
   const s = size * 0.28;
 
-  // Bucket body
   ctx.beginPath();
   ctx.moveTo(cx - s * 0.7, cy - s * 0.1);
   ctx.lineTo(cx - s * 0.55, cy + s);
@@ -45,11 +42,9 @@ function drawIcon(size) {
   ctx.fillStyle = '#2a1f0d';
   ctx.fill();
 
-  // Stripe on bucket
   ctx.fillStyle = '#E5A12A';
   ctx.fillRect(cx - s * 0.08, cy - s * 0.1, s * 0.16, s * 1.1);
 
-  // Popcorn balls
   const ballR = s * 0.28;
   const balls = [
     [cx, cy - s * 0.55],
@@ -71,37 +66,117 @@ function drawIcon(size) {
   return canvas;
 }
 
-function generate() {
-  const output = document.getElementById('output');
-  output.innerHTML = '';
-  [192, 512].forEach(size => {
-    const canvas = drawIcon(size);
-    const div = document.createElement('div');
-    div.style.textAlign = 'center';
+function drawScreenshot(width, height) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
 
-    const label = document.createElement('p');
-    label.textContent = `icon-${size}.png`;
-    label.style.margin = '0 0 8px';
+  // Background
+  ctx.fillStyle = '#f5f5f5';
+  ctx.fillRect(0, 0, width, height);
 
-    const preview = document.createElement('img');
-    preview.src = canvas.toDataURL();
-    preview.style.width = '96px';
-    preview.style.border = '1px solid #ccc';
-    preview.style.borderRadius = '8px';
-    preview.style.display = 'block';
+  // Top bar
+  ctx.fillStyle = '#E5A12A';
+  ctx.fillRect(0, 0, width, height * 0.08);
 
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = `icon-${size}.png`;
-    link.textContent = `⬇ Save icon-${size}.png`;
-    link.style.display = 'block';
-    link.style.marginTop = '8px';
+  // Title
+  ctx.fillStyle = '#2a1f0d';
+  ctx.font = `bold ${height * 0.04}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.fillText('Dinopop Corn Inventory', width / 2, height * 0.055);
 
-    div.appendChild(label);
-    div.appendChild(preview);
-    div.appendChild(link);
-    output.appendChild(div);
+  // Cards
+  const cardY = height * 0.12;
+  const cardH = height * 0.12;
+  const pad = width * 0.04;
+  const cardW = (width - pad * 3) / 2;
+
+  [['รายการทั้งหมด', '20'], ['ของใกล้หมด', '3']].forEach(([label, val], i) => {
+    const x = pad + i * (cardW + pad);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(x, cardY, cardW, cardH, 8);
+    ctx.fill();
+    ctx.fillStyle = '#888';
+    ctx.font = `${height * 0.025}px Arial`;
+    ctx.textAlign = 'left';
+    ctx.fillText(label, x + 12, cardY + cardH * 0.4);
+    ctx.fillStyle = i === 1 ? '#e53e3e' : '#2a1f0d';
+    ctx.font = `bold ${height * 0.045}px Arial`;
+    ctx.fillText(val, x + 12, cardY + cardH * 0.8);
   });
+
+  // Table header
+  const tableY = cardY + cardH + pad;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(pad, tableY, width - pad * 2, height * 0.06);
+  ctx.fillStyle = '#888';
+  ctx.font = `${height * 0.025}px Arial`;
+  ctx.textAlign = 'left';
+  ctx.fillText('ชื่อรายการ', pad + 12, tableY + height * 0.04);
+  ctx.textAlign = 'right';
+  ctx.fillText('จำนวน / สถานะ', width - pad - 12, tableY + height * 0.04);
+
+  // Rows
+  const rows = [
+    ['ถุงกระดาษ M', '80 ใบ', true],
+    ['เมล็ดข้าวโพด', '24 กก.', false],
+    ['น้ำตาลทราย', '18 กก.', false],
+    ['ผงคาราเมล', '2 ถุง', true],
+  ];
+  rows.forEach(([name, qty, low], i) => {
+    const rowY = tableY + height * 0.065 + i * height * 0.065;
+    ctx.fillStyle = low ? '#fff5f5' : '#ffffff';
+    ctx.fillRect(pad, rowY, width - pad * 2, height * 0.06);
+    ctx.fillStyle = '#2a1f0d';
+    ctx.font = `${height * 0.028}px Arial`;
+    ctx.textAlign = 'left';
+    ctx.fillText(name, pad + 12, rowY + height * 0.04);
+    ctx.fillStyle = low ? '#e53e3e' : '#38a169';
+    ctx.textAlign = 'right';
+    ctx.fillText(qty, width - pad - 12, rowY + height * 0.04);
+  });
+
+  return canvas;
+}
+
+function addItem(canvas, filename, previewWidth) {
+  const output = document.getElementById('output');
+  const div = document.createElement('div');
+  div.style.textAlign = 'center';
+
+  const label = document.createElement('p');
+  label.textContent = filename;
+  label.style.margin = '0 0 8px';
+  label.style.fontWeight = 'bold';
+
+  const preview = document.createElement('img');
+  preview.src = canvas.toDataURL();
+  preview.style.width = previewWidth + 'px';
+  preview.style.border = '1px solid #ccc';
+  preview.style.borderRadius = '8px';
+  preview.style.display = 'block';
+
+  const link = document.createElement('a');
+  link.href = canvas.toDataURL('image/png');
+  link.download = filename;
+  link.textContent = `⬇ Save ${filename}`;
+  link.style.display = 'block';
+  link.style.marginTop = '8px';
+
+  div.appendChild(label);
+  div.appendChild(preview);
+  div.appendChild(link);
+  output.appendChild(div);
+}
+
+function generateAll() {
+  document.getElementById('output').innerHTML = '';
+  addItem(drawIcon(192), 'icon-192.png', 96);
+  addItem(drawIcon(512), 'icon-512.png', 96);
+  addItem(drawScreenshot(390, 844), 'screenshot-mobile.png', 120);
+  addItem(drawScreenshot(1280, 800), 'screenshot-desktop.png', 240);
 }
 </script>
 </body>
