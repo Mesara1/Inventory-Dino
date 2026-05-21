@@ -2,8 +2,8 @@
 
 // ── Login Page ─────────────────────────────────────────────────────────────
 function LoginPage({ onLogin }) {
-  const [email, setEmail] = React.useState('piya@dinopop.co');
-  const [pw, setPw] = React.useState('demo1234');
+  const [email, setEmail] = React.useState('');
+  const [pw, setPw] = React.useState('');
   const [err, setErr] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
@@ -78,19 +78,6 @@ function LoginPage({ onLogin }) {
             ต้องการบัญชีใหม่? ติดต่อผู้ดูแลระบบของร้าน
           </p>
 
-          <div className="login-form__demo">
-            <div className="login-form__demo-label">บัญชีสำหรับทดลอง</div>
-            <div className="login-form__demo-grid">
-              <button type="button" className="login-form__demo-btn"
-                      onClick={() => { setEmail('piya@dinopop.co'); setPw('demo1234'); }}>
-                <span>Admin</span><small>piya@dinopop.co</small>
-              </button>
-              <button type="button" className="login-form__demo-btn"
-                      onClick={() => { setEmail('napha@dinopop.co'); setPw('demo1234'); }}>
-                <span>User</span><small>napha@dinopop.co</small>
-              </button>
-            </div>
-          </div>
         </form>
       </div>
     </div>
