@@ -1,6 +1,14 @@
 # Claude memory
 .claude/
 
+# Claude project docs (local only)
+CLAUDE.md
+skills/
+docs/
+
+# SSH keys
+SSH-keys/
+
 # env
 .env
 backend/.env
