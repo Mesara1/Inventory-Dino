@@ -15,7 +15,7 @@
 | Web Server | Nginx (reverse proxy) |
 | Host | Oracle Cloud VM (Ubuntu 22.04, ARM A1.Flex) |
 
-**App URL:** http://161.118.208.161
+**App URL:** http://dinopop19.duckdns.org
 
 ---
 
@@ -94,9 +94,12 @@ Base path: `/api/v1`
 
 ### อัปเดต App (push code ใหม่แล้ว)
 ```bash
-ssh ubuntu@161.118.208.161
+ssh -i "SSH-keys/ssh-key-2026-05-21.key" ubuntu@161.118.208.161
 cd ~/Inventory-Dino
-bash scripts/deploy.sh
+git pull origin main
+# ถ้าแก้ frontend อย่างเดียว: Nginx serve ทันที ไม่ต้อง rebuild
+# ถ้าแก้ backend: ต้อง rebuild
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### ดูสถานะ Containers
