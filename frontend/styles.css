@@ -73,6 +73,7 @@ body {
 }
 button { font: inherit; color: inherit; cursor: pointer; }
 input, select, textarea { font: inherit; color: inherit; }
+input, select, textarea { font-size: max(16px, 1em); }
 h1, h2, h3, h4, p { margin: 0; }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
@@ -1092,10 +1093,6 @@ a { color: inherit; }
 .show-mobile { display: none !important; }
 
 @media (max-width: 880px) {
-  /* Prevent iOS Safari auto-zoom on input focus (triggers when font-size < 16px) */
-  .input__el, select, textarea { font-size: 16px; }
-  .qty-modal__input { font-size: 28px; }
-
   html, body { height: 100%; overflow: hidden; }
 
   .app {
