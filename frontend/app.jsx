@@ -7,11 +7,14 @@ const TWEAK_DEFAULTS = {
 };
 
 const NAV_ITEMS = [
-  { key: 'dashboard',  label: 'แดชบอร์ด',     icon: I.Home,   roles: ['admin', 'user'] },
+  { key: 'dashboard',  label: 'แดชบอร์ด',    icon: I.Home,   roles: ['admin', 'user'] },
+  { key: 'stock',      label: 'สินค้า',       icon: I.Box,    roles: ['admin', 'user'] },
   { key: 'categories', label: 'ประเภทสินค้า', icon: I.Tag,    roles: ['admin'] },
-  { key: 'users',      label: 'ผู้ใช้งาน',     icon: I.Users,  roles: ['admin'] },
-  { key: 'profile',    label: 'โปรไฟล์',      icon: I.User,   roles: ['admin', 'user'] },
+  { key: 'users',      label: 'ผู้ใช้งาน',    icon: I.Users,  roles: ['admin'] },
+  { key: 'profile',    label: 'โปรไฟล์',     icon: I.User,   roles: ['admin', 'user'] },
 ];
+
+const BOTTOM_NAV_KEYS = ['dashboard', 'stock', 'profile'];
 
 function Sidebar({ active, onNav, me, onLogout }) {
   const items = NAV_ITEMS.filter(n => n.roles.includes(me.role));
@@ -59,7 +62,9 @@ function Sidebar({ active, onNav, me, onLogout }) {
 }
 
 function BottomNav({ active, onNav, me }) {
-  const items = NAV_ITEMS.filter(n => n.roles.includes(me.role));
+  const items = NAV_ITEMS.filter(n =>
+    n.roles.includes(me.role) && BOTTOM_NAV_KEYS.includes(n.key)
+  );
   return (
     <nav className="bottomnav" aria-label="หลัก (มือถือ)">
       {items.map(n => {
@@ -354,7 +359,10 @@ function App() {
       <main className="main">
         <div className="main__inner">
           {page === 'dashboard' && (
-            <DashboardPage
+            <DashboardPage items={items} categories={categories}/>
+          )}
+          {page === 'stock' && (
+            <StockPage
               items={items} categories={categories} role={me.role}
               onAddItem={handleAddItem}
               onEditItem={handleEditItem}
@@ -406,7 +414,19 @@ function App() {
                 <div className="sheet__email">{me.email}</div>
               </div>
             </div>
-            <button className="sheet__action"
+            {me.role === 'admin' && (
+              <>
+                <button className="sheet__action"
+                        onClick={() => { setPage('categories'); setMobileMenuOpen(false); }}>
+                  <I.Tag size={18}/> ประเภทสินค้า
+                </button>
+                <button className="sheet__action"
+                        onClick={() => { setPage('users'); setMobileMenuOpen(false); }}>
+                  <I.Users size={18}/> ผู้ใช้งาน
+                </button>
+              </>
+            )}
+            <button className="sheet__action sheet__action--danger"
                     onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>
               <I.Logout size={18}/> ออกจากระบบ
             </button>

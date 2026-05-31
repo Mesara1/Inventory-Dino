@@ -85,20 +85,42 @@ function LoginPage({ onLogin }) {
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
-function DashboardPage({ items, categories, role, onAddItem, onEditItem,
-                          onDeleteItem, onUpdateQty, onAdjustOne }) {
+function DashboardPage({ items, categories }) {
+  const totalCount = items.length;
+  const lowCount   = items.filter(it => it.qty <= it.min).length;
+  const totalQty   = items.reduce((s, it) => s + it.qty, 0);
+
+  return (
+    <div className="page">
+      <PageHeader
+        eyebrow="สาขาแจ้งวัฒนะ-ปากเกร็ด 19"
+        title="แดชบอร์ด"
+      />
+      <div className="dash-summary">
+        <SummaryCard icon={<I.Box size={20}/>} label="รายการทั้งหมด"
+                     value={totalCount} hint={`${categories.length} ประเภท`}/>
+        <SummaryCard icon={<I.Alert size={20}/>} tone={lowCount > 0 ? 'danger' : 'success'}
+                     label="ของใกล้หมด" value={lowCount}
+                     hint={lowCount > 0 ? 'ต้องสั่งเพิ่มภายในวันนี้' : 'ทุกอย่างพร้อมจำหน่าย'}/>
+        <SummaryCard icon={<I.Sparkle size={20}/>} label="หน่วยคงเหลือรวม"
+                     value={totalQty.toLocaleString('th-TH')}
+                     hint="นับทุกหมวด"/>
+      </div>
+    </div>
+  );
+}
+
+function StockPage({ items, categories, role, onAddItem, onEditItem,
+                     onDeleteItem, onUpdateQty, onAdjustOne }) {
   const [q, setQ] = React.useState('');
   const [catFilter, setCatFilter] = React.useState('');
-  // Which row is in stock-edit mode? Only that row shows the +/- controls.
   const [editStockId, setEditStockId] = React.useState(null);
-  const [scope, setScope] = React.useState('all'); // 'all' | 'low'
+  const [scope, setScope] = React.useState('all');
   const [sort, setSort] = React.useState({ key: 'name', dir: 'asc' });
 
   const totalCount = items.length;
-  const lowCount = items.filter(it => it.qty <= it.min).length;
-  const totalQty = items.reduce((s, it) => s + it.qty, 0);
-
-  const catMap = Object.fromEntries(categories.map(c => [c.id, c.name]));
+  const lowCount   = items.filter(it => it.qty <= it.min).length;
+  const catMap     = Object.fromEntries(categories.map(c => [c.id, c.name]));
 
   const filtered = React.useMemo(() => {
     const ql = q.trim().toLowerCase();
@@ -121,26 +143,14 @@ function DashboardPage({ items, categories, role, onAddItem, onEditItem,
     <div className="page">
       <PageHeader
         eyebrow="สาขาแจ้งวัฒนะ-ปากเกร็ด 19"
-        title="ภาพรวมสต็อก"
-        subtitle={`ตอนนี้มี ${totalCount} รายการในระบบ · รวม ${totalQty.toLocaleString('th-TH')} หน่วย`}
+        title="สินค้า"
+        subtitle={`${totalCount} รายการในระบบ`}
         actions={role === 'admin' && (
           <Button variant="primary" icon={<I.Plus size={16}/>} onClick={onAddItem}>
             เพิ่มรายการ
           </Button>
         )}
       />
-
-      {/* Summary cards */}
-      <div className="dash-summary">
-        <SummaryCard icon={<I.Box size={20}/>} label="รายการทั้งหมด"
-                     value={totalCount} hint={`${categories.length} ประเภท`}/>
-        <SummaryCard icon={<I.Alert size={20}/>} tone={lowCount > 0 ? 'danger' : 'success'}
-                     label="ของใกล้หมด" value={lowCount}
-                     hint={lowCount > 0 ? 'ต้องสั่งเพิ่มภายในวันนี้' : 'ทุกอย่างพร้อมจำหน่าย'}/>
-        <SummaryCard icon={<I.Sparkle size={20}/>} label="หน่วยคงเหลือรวม"
-                     value={totalQty.toLocaleString('th-TH')}
-                     hint="นับทุกหมวด"/>
-      </div>
 
       {/* Filter bar */}
       <Card className="filter-bar">

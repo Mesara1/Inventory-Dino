@@ -1071,6 +1071,8 @@ a { color: inherit; }
   color: var(--ink-2); font-weight: 500; text-align: left;
 }
 .sheet__action:hover { background: var(--surface-2); color: var(--ink); }
+.sheet__action--danger { color: var(--color-danger); }
+.sheet__action--danger:hover { background: var(--surface-danger, #fff1f2); }
 
 /* ────────────────────────────────────────────────────────────────────────
    Category card (mobile)
