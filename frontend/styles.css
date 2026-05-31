@@ -1178,6 +1178,10 @@ a { color: inherit; }
 
   /* Login form padding tighter */
   .login-main { padding: var(--pad-4); padding-top: 6vh; }
+
+  /* Prevent iOS Safari auto-zoom on input focus (triggers when font-size < 16px) */
+  .input__el, select, textarea { font-size: 16px; }
+  .qty-modal__input { font-size: 28px; }
 }
 
 /* Larger tap targets on touch devices */
