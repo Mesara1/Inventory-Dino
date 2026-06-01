@@ -108,7 +108,8 @@ function App() {
   const [me, setMe]           = React.useState(null);
   const [loggedIn, setLoggedIn] = React.useState(false);
   const [checking, setChecking] = React.useState(true); // initial auth check
-  const [page, setPage]       = React.useState('dashboard');
+  const [page, setPage]         = React.useState('dashboard');
+  const [stockScope, setStockScope] = React.useState('all');
 
   // Data state
   const [items,      setItems]      = React.useState([]);
@@ -359,11 +360,13 @@ function App() {
       <main className="main">
         <div className="main__inner">
           {page === 'dashboard' && (
-            <DashboardPage items={items} categories={categories}/>
+            <DashboardPage items={items} categories={categories} me={me}
+                           onNavStock={(scope) => { setStockScope(scope); setPage('stock'); }}/>
           )}
           {page === 'stock' && (
             <StockPage
               items={items} categories={categories} role={me.role}
+              initialScope={stockScope}
               onAddItem={handleAddItem}
               onEditItem={handleEditItem}
               onDeleteItem={handleDeleteItem}

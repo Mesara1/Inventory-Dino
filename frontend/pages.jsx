@@ -85,37 +85,391 @@ function LoginPage({ onLogin }) {
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
-function DashboardPage({ items, categories }) {
-  const totalCount = items.length;
-  const lowCount   = items.filter(it => it.qty <= it.min).length;
-  const totalQty   = items.reduce((s, it) => s + it.qty, 0);
+// ── Dashboard constants & helpers ────────────────────────────────────────────
+const CAT_PALETTE = ['#E5A12A','#6F9E6E','#5B8DB8','#C9603F','#9A7CB8','#3B7A9E','#B87A3B','#7A3BB8'];
+const STATUS_META = {
+  critical: { label: 'ใกล้หมด',  color: '#C0392B', bg: '#fff1f2' },
+  warning:  { label: 'เหลือน้อย', color: '#D9912B', bg: '#fdf3e0' },
+  ok:       { label: 'ปกติ',     color: '#3F8060', bg: '#f0fdf4' },
+};
+
+function itemStatus(it) {
+  if (!it.min || it.min === 0) return 'ok';
+  if (it.qty <= it.min) return 'critical';
+  if (it.qty <= it.min * 1.5) return 'warning';
+  return 'ok';
+}
+
+function useStats(items, categories) {
+  return React.useMemo(() => {
+    const catsWithColor = categories.map((c, i) => ({ ...c, color: CAT_PALETTE[i % CAT_PALETTE.length] }));
+    const withStatus = items.map(it => ({ ...it, status: itemStatus(it) }));
+    const counts = { critical: 0, warning: 0, ok: 0 };
+    withStatus.forEach(it => counts[it.status]++);
+    const totalUnits = items.reduce((s, it) => s + it.qty, 0);
+    const byCat = catsWithColor.map(c => ({
+      ...c,
+      count: items.filter(it => it.cat === c.id).length,
+    }));
+    const critical = withStatus.filter(it => it.status === 'critical')
+      .sort((a, b) => (a.qty / Math.max(a.min, 1)) - (b.qty / Math.max(b.min, 1)));
+    return { withStatus, counts, totalUnits, byCat, critical };
+  }, [items, categories]);
+}
+
+function thaiDate() {
+  const d = new Date();
+  const m = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${d.getDate()} ${m[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+
+function useChart(config, deps) {
+  const ref  = React.useRef(null);
+  const inst = React.useRef(null);
+  React.useEffect(() => {
+    if (!ref.current || !window.Chart) return;
+    if (inst.current) inst.current.destroy();
+    inst.current = new Chart(ref.current, config);
+    return () => { inst.current && inst.current.destroy(); };
+  }, deps);
+  return ref;
+}
+
+// ── Dashboard: Attention hero ─────────────────────────────────────────────────
+function AttentionHero({ critical, onOpen }) {
+  if (critical.length === 0) {
+    return (
+      <div className="attn attn--clear">
+        <div className="attn__deco"/><div className="attn__deco2"/>
+        <div className="attn__head">
+          <span className="attn__icon"><I.Check size={20}/></span>
+          <div>
+            <div className="attn__title">สต็อกพร้อมจำหน่าย</div>
+            <div className="attn__sub">ไม่มีรายการใกล้หมด ทุกอย่างเพียงพอ</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const shown = critical.slice(0, 3);
+  const more  = critical.length - shown.length;
+  return (
+    <div className="attn attn--alert">
+      <div className="attn__deco"/><div className="attn__deco2"/>
+      <div className="attn__head">
+        <span className="attn__icon"><I.Alert size={20}/></span>
+        <div>
+          <div className="attn__title">ต้องสั่งเพิ่มวันนี้</div>
+          <div className="attn__sub">{critical.length} รายการใกล้หมดสต็อก</div>
+        </div>
+      </div>
+      <div className="attn__list">
+        {shown.map(it => (
+          <div key={it.id} className="attn__row">
+            <span className="attn__name">{it.name}</span>
+            <span className="attn__qty">
+              <I.Minus size={11}/> เหลือ {it.qty}/{it.min} {it.unit}
+            </span>
+          </div>
+        ))}
+      </div>
+      <button className="attn__cta" onClick={onOpen}>
+        {more > 0 ? `ดูทั้งหมด · อีก ${more} รายการ` : 'ดูรายละเอียดคลัง'} <I.ChevronRight size={16}/>
+      </button>
+    </div>
+  );
+}
+
+// ── Dashboard: Hero widget ────────────────────────────────────────────────────
+function HeroWidget({ stats, onOpen }) {
+  const total = stats.counts.critical + stats.counts.warning + stats.counts.ok || 1;
+  const segs  = [
+    { k: 'ok', n: stats.counts.ok },
+    { k: 'warning', n: stats.counts.warning },
+    { k: 'critical', n: stats.counts.critical },
+  ];
+  return (
+    <button className="wtile" onClick={onOpen} style={{ gridColumn: '1 / -1' }}>
+      <div className="wtile__top">
+        <span className="wtile__icon"><I.Box size={20}/></span>
+        <span className="wtile__chev"><I.ChevronRight size={18}/></span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span className="wtile__value">{stats.withStatus.length}</span>
+        <span className="wtile__label">คลังสินค้า · {stats.totalUnits.toLocaleString('th-TH')} หน่วย</span>
+      </div>
+      <div style={{ marginTop: 4 }}>
+        <div className="health__bar" style={{ height: 10 }}>
+          {segs.filter(s => s.n > 0).map(s => (
+            <div key={s.k} className="health__seg"
+                 style={{ width: `${(s.n / total) * 100}%`, background: STATUS_META[s.k].color }}/>
+          ))}
+        </div>
+        <div className="health__legend" style={{ marginTop: 9 }}>
+          {['ok','warning','critical'].map(k => (
+            <span key={k} className="health__leg" style={{ fontSize: 11.5 }}>
+              <span className="health__dot" style={{ background: STATUS_META[k].color }}/>
+              {STATUS_META[k].label} <b>{stats.counts[k]}</b>
+            </span>
+          ))}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ── Detail: Donut chart ───────────────────────────────────────────────────────
+function DonutChart({ byCat }) {
+  const data  = byCat.filter(c => c.count > 0);
+  const total = data.reduce((s, c) => s + c.count, 0);
+  const ref   = useChart({
+    type: 'doughnut',
+    data: {
+      labels: data.map(c => c.name),
+      datasets: [{
+        data: data.map(c => c.count),
+        backgroundColor: data.map(c => c.color),
+        borderColor: '#fff', borderWidth: 3, borderRadius: 4, hoverOffset: 6,
+      }],
+    },
+    options: {
+      cutout: '68%', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#2a2118', padding: 10, cornerRadius: 8,
+          callbacks: { label: c => ` ${c.label}: ${c.raw} รายการ` },
+        },
+      },
+    },
+  }, [JSON.stringify(data.map(c => c.count))]);
 
   return (
-    <div className="page">
-      <PageHeader
-        eyebrow="สาขาแจ้งวัฒนะ-ปากเกร็ด 19"
-        title="แดชบอร์ด"
-      />
-      <div className="dash-summary">
-        <SummaryCard icon={<I.Box size={20}/>} label="รายการทั้งหมด"
-                     value={totalCount} hint={`${categories.length} ประเภท`}/>
-        <SummaryCard icon={<I.Alert size={20}/>} tone={lowCount > 0 ? 'danger' : 'success'}
-                     label="ของใกล้หมด" value={lowCount}
-                     hint={lowCount > 0 ? 'ต้องสั่งเพิ่มภายในวันนี้' : 'ทุกอย่างพร้อมจำหน่าย'}/>
-        <SummaryCard icon={<I.Sparkle size={20}/>} label="หน่วยคงเหลือรวม"
-                     value={totalQty.toLocaleString('th-TH')}
-                     hint="นับทุกหมวด"/>
+    <div className="chartcard">
+      <div className="chartcard__title">สัดส่วนตามประเภท</div>
+      <div className="chartcard__sub">จำนวนรายการในแต่ละหมวด</div>
+      <div className="donut-wrap">
+        <canvas ref={ref}/>
+        <div className="donut-center"><b>{total}</b><span>รายการ</span></div>
+      </div>
+      <div className="donut-legend">
+        {data.map(c => (
+          <div key={c.id} className="donut-leg">
+            <span className="donut-leg__dot" style={{ background: c.color }}/>
+            <span className="donut-leg__name">{c.name}</span>
+            <span className="donut-leg__val">{c.count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Detail: Watch bar chart ───────────────────────────────────────────────────
+function WatchBarChart({ withStatus }) {
+  const ranked = [...withStatus]
+    .filter(it => it.min > 0)
+    .sort((a, b) => (a.qty / a.min) - (b.qty / b.min))
+    .slice(0, 8);
+
+  const ref = useChart({
+    type: 'bar',
+    data: {
+      labels: ranked.map(it => it.name),
+      datasets: [{
+        data: ranked.map(it => Math.round((it.qty / it.min) * 100)),
+        backgroundColor: ranked.map(it => STATUS_META[it.status].color),
+        borderRadius: 5, barThickness: 16,
+      }],
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#2a2118', padding: 10, cornerRadius: 8,
+          callbacks: {
+            label: c => {
+              const it = ranked[c.dataIndex];
+              return ` ${it.qty}/${it.min} ${it.unit} (${c.raw}% ของขั้นต่ำ)`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(0,0,0,.05)' },
+          ticks: { callback: v => v + '%', font: { size: 10 } },
+          suggestedMax: 200,
+        },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      },
+    },
+  }, [JSON.stringify(ranked.map(it => it.qty))]);
+
+  if (ranked.length === 0) return null;
+  return (
+    <div className="chartcard">
+      <div className="chartcard__title">รายการต้องดูแล</div>
+      <div className="chartcard__sub">% ของจำนวนคงเหลือเทียบกับขั้นต่ำ — ยิ่งสั้นยิ่งต้องสั่ง</div>
+      <div className="hbar-wrap"><canvas ref={ref}/></div>
+    </div>
+  );
+}
+
+// ── Detail: Watch list ────────────────────────────────────────────────────────
+function WatchList({ withStatus }) {
+  const [filter, setFilter] = React.useState('attention');
+  const filtered = React.useMemo(() => {
+    let list = withStatus;
+    if (filter === 'attention') list = withStatus.filter(it => it.status !== 'ok');
+    else if (filter !== 'all')  list = withStatus.filter(it => it.status === filter);
+    return [...list].sort((a, b) => (a.qty / Math.max(a.min, 1)) - (b.qty / Math.max(b.min, 1)));
+  }, [withStatus, filter]);
+
+  return (
+    <div className="chartcard">
+      <div className="chartcard__title" style={{ marginBottom: 12 }}>รายการสินค้า</div>
+      <div className="seg-filter">
+        {[['attention','ต้องดูแล'],['critical','ใกล้หมด'],['warning','เหลือน้อย'],['all','ทั้งหมด']].map(([k,l]) => (
+          <button key={k} className={filter === k ? 'is-on' : ''} onClick={() => setFilter(k)}>{l}</button>
+        ))}
+      </div>
+      <div className="watchlist">
+        {filtered.length === 0 && (
+          <div style={{ textAlign:'center', padding:'24px 0', color:'var(--ink-3)', fontSize:13 }}>
+            ไม่มีรายการในกลุ่มนี้
+          </div>
+        )}
+        {filtered.map(it => {
+          const meta = STATUS_META[it.status];
+          const pct  = Math.min(100, (it.qty / (Math.max(it.min, 1) * 2)) * 100);
+          return (
+            <div key={it.id} className="watchrow">
+              <div className="watchrow__main">
+                <div className="watchrow__name">{it.name}</div>
+                <div className="watchrow__track">
+                  <div className="watchrow__fill" style={{ width:`${pct}%`, background: meta.color }}/>
+                </div>
+              </div>
+              <div className="watchrow__qty">
+                <b style={{ color: it.status === 'critical' ? meta.color : 'inherit' }}>{it.qty}</b>
+                <small>ขั้นต่ำ {it.min}</small>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Detail: Warehouse ─────────────────────────────────────────────────────────
+function WarehouseDetail({ stats, onBack, onNavStock }) {
+  return (
+    <div className="d-page-enter" style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div className="backhdr">
+        <button className="backhdr__btn" onClick={onBack} aria-label="ย้อนกลับ">
+          <I.Chevron size={20} style={{ transform:'rotate(90deg)' }}/>
+        </button>
+        <div>
+          <div className="backhdr__title">คลังสินค้า</div>
+          <div className="backhdr__sub">
+            {stats.withStatus.length} รายการ · รวม {stats.totalUnits.toLocaleString('th-TH')} หน่วย
+          </div>
+        </div>
+      </div>
+
+      <div className="statpills">
+        {['critical','warning','ok'].map(k => {
+          const m = STATUS_META[k];
+          return (
+            <div key={k} className="statpill" style={{ background: m.bg, borderColor: m.color + '33' }}>
+              <span className="statpill__num" style={{ color: m.color }}>{stats.counts[k]}</span>
+              <span className="statpill__lbl" style={{ color: m.color }}>{m.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <DonutChart byCat={stats.byCat}/>
+      <WatchBarChart withStatus={stats.withStatus}/>
+      <WatchList withStatus={stats.withStatus}/>
+
+      {onNavStock && (
+        <button className="attn__cta"
+                style={{ background:'var(--color-primary)', color:'#fff', border:'none',
+                         borderRadius:12, height:48, fontWeight:700, fontSize:15,
+                         display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
+                onClick={() => onNavStock('low')}>
+          ไปอัปเดตสต็อก <I.ChevronRight size={16}/>
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Dashboard widgets ─────────────────────────────────────────────────────────
+// เพิ่ม widget ใหม่ (แบบ tile เล็ก) ที่ WIDGETS array นี้อย่างเดียว
+const WIDGETS = [
+  // ─── เพิ่ม tile widget ที่นี่ (size: 'tile') ──────────────────────────────
+  // { id:'x', label:'ชื่อ', icon:(sz)=><I.Box size={sz}/>,
+  //   value:(s)=>0, hint:(s)=>'', tone:(s)=>'neutral', detail:'warehouse' }
+];
+
+function DashboardPage({ items, categories, me, onNavStock }) {
+  const [detail, setDetail] = React.useState(null);
+  const stats = useStats(items, categories);
+
+  if (detail === 'warehouse')
+    return <WarehouseDetail stats={stats} onBack={() => setDetail(null)} onNavStock={onNavStock}/>;
+
+  return (
+    <div className="d-page-enter" style={{ display:'flex', flexDirection:'column', gap:14, padding:'0 0 8px' }}>
+      <div className="d-greet">
+        <div className="d-greet__eyebrow">สาขาแจ้งวัฒนะ-ปากเกร็ด 19</div>
+        <div className="d-greet__title">สวัสดี, {me?.firstName || 'คุณ'} 👋</div>
+        <div className="d-greet__sub">ภาพรวมสต็อกวันนี้ · {thaiDate()}</div>
+      </div>
+
+      <AttentionHero critical={stats.critical} onOpen={() => setDetail('warehouse')}/>
+
+      <div className="d-section-label">วิดเจ็ต</div>
+      <div className="wgrid">
+        <HeroWidget stats={stats} onOpen={() => setDetail('warehouse')}/>
+        {WIDGETS.map(w => (
+          <button key={w.id} className={`wtile wtile--${w.tone(stats)}`}
+                  onClick={() => setDetail(w.detail)}>
+            <div className="wtile__top">
+              <span className="wtile__icon">{w.icon(18)}</span>
+              <span className="wtile__chev"><I.ChevronRight size={16}/></span>
+            </div>
+            <div className="wtile__value">{w.value(stats)}</div>
+            <div className="wtile__label">{w.label}</div>
+            <div className="wtile__hint">{w.hint(stats)}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="d-section-label">ตามประเภท</div>
+      <div className="catchips">
+        {stats.byCat.filter(c => c.count > 0).map(c => (
+          <div key={c.id} className="catchip">
+            <span className="catchip__dot" style={{ background: c.color }}/>
+            {c.name} <b>{c.count}</b>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 function StockPage({ items, categories, role, onAddItem, onEditItem,
-                     onDeleteItem, onUpdateQty, onAdjustOne }) {
+                     onDeleteItem, onUpdateQty, onAdjustOne, initialScope = 'all' }) {
   const [q, setQ] = React.useState('');
   const [catFilter, setCatFilter] = React.useState('');
   const [editStockId, setEditStockId] = React.useState(null);
-  const [scope, setScope] = React.useState('all');
+  const [scope, setScope] = React.useState(initialScope);
   const [sort, setSort] = React.useState({ key: 'name', dir: 'asc' });
 
   const totalCount = items.length;
