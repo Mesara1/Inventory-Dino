@@ -1,39 +1,9 @@
-CREATE TABLE categories (
-    category_id INT AUTO_INCREMENT PRIMARY KEY,
-    category_name VARCHAR(100) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+-- Migration: Finance feature (income/expense ledger + recipe cost/profit)
+-- Run once against an already-initialized DB (schema.sql only applies on fresh container init)
 
-CREATE TABLE users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(100) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    firstname VARCHAR(100),
-    lastname VARCHAR(100),
-    tel VARCHAR(20),
-    role ENUM('admin','user') NOT NULL DEFAULT 'user',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL
-);
-
-CREATE TABLE items (
-    item_id INT AUTO_INCREMENT PRIMARY KEY,
-    item_name VARCHAR(255) NOT NULL UNIQUE,
-    item_quantity INT NOT NULL DEFAULT 0,
-    unit VARCHAR(50) NOT NULL,
-    min_quantity INT NOT NULL DEFAULT 0,
-    category_id INT NULL,
-    package_price DECIMAL(10,2) NULL,
-    package_size_g DECIMAL(10,2) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL,
-    CONSTRAINT chk_item_quantity CHECK (item_quantity >= 0),
-    CONSTRAINT chk_min_quantity CHECK (min_quantity >= 0),
-    FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL
-);
+ALTER TABLE items
+    ADD COLUMN package_price DECIMAL(10,2) NULL,
+    ADD COLUMN package_size_g DECIMAL(10,2) NULL;
 
 CREATE TABLE transactions (
     transaction_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,11 +44,8 @@ CREATE TABLE recipe_ingredients (
     FOREIGN KEY (item_id) REFERENCES items(item_id)
 );
 
-CREATE TABLE activity_logs (
-    activity_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    item_id INT NULL,
-    action ENUM(
+ALTER TABLE activity_logs
+    MODIFY COLUMN action ENUM(
         'CREATE_ITEM',
         'UPDATE_ITEM',
         'DELETE_ITEM',
@@ -94,11 +61,4 @@ CREATE TABLE activity_logs (
         'CREATE_RECIPE',
         'UPDATE_RECIPE',
         'DELETE_RECIPE'
-    ) NOT NULL,
-    description JSON,
-    old_data JSON,
-    new_data JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE SET NULL
-);
+    ) NOT NULL;

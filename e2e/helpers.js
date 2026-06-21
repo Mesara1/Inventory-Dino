@@ -26,4 +26,14 @@ async function openQtyModal(page) {
   await expect(page.locator('.qty-modal')).toBeVisible({ timeout: 5000 });
 }
 
-module.exports = { login, openQtyModal, ADMIN };
+async function gotoPage(page, label) {
+  const navlink = page.locator('.sidebar .navlink', { hasText: label });
+  if (await navlink.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await navlink.click();
+  } else {
+    await page.click('.topbar__menu');
+    await page.click(`.sheet__action:has-text("${label}")`);
+  }
+}
+
+module.exports = { login, openQtyModal, gotoPage, ADMIN };

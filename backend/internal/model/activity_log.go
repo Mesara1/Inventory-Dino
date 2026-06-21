@@ -18,6 +18,13 @@ const (
 	ActionDeactivateUser ActionType = "DEACTIVATE_USER"
 	ActionLogin          ActionType = "LOGIN"
 	ActionLogout         ActionType = "LOGOUT"
+
+	ActionCreateTransaction ActionType = "CREATE_TRANSACTION"
+	ActionUpdateTransaction ActionType = "UPDATE_TRANSACTION"
+	ActionDeleteTransaction ActionType = "DELETE_TRANSACTION"
+	ActionCreateRecipe      ActionType = "CREATE_RECIPE"
+	ActionUpdateRecipe      ActionType = "UPDATE_RECIPE"
+	ActionDeleteRecipe      ActionType = "DELETE_RECIPE"
 )
 
 type JSONMap map[string]any
@@ -38,7 +45,7 @@ type ActivityLog struct {
 	ActivityID  uint       `gorm:"primaryKey;autoIncrement" json:"activity_id"`
 	UserID      uint       `gorm:"not null" json:"user_id"`
 	ItemID      *uint      `json:"item_id"`
-	Action      ActionType `gorm:"type:enum('CREATE_ITEM','UPDATE_ITEM','DELETE_ITEM','RESTORE_ITEM','CREATE_USER','UPDATE_USER','DEACTIVATE_USER','LOGIN','LOGOUT');not null" json:"action"`
+	Action      ActionType `gorm:"type:enum('CREATE_ITEM','UPDATE_ITEM','DELETE_ITEM','RESTORE_ITEM','CREATE_USER','UPDATE_USER','DEACTIVATE_USER','LOGIN','LOGOUT','CREATE_TRANSACTION','UPDATE_TRANSACTION','DELETE_TRANSACTION','CREATE_RECIPE','UPDATE_RECIPE','DELETE_RECIPE');not null" json:"action"`
 	Description JSONMap    `gorm:"type:json" json:"description"`
 	OldData     JSONMap    `gorm:"type:json" json:"old_data"`
 	NewData     JSONMap    `gorm:"type:json" json:"new_data"`

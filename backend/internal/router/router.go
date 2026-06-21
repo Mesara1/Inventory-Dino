@@ -51,6 +51,22 @@ func Setup(h *handler.Handler, jwtMiddleware gin.HandlerFunc) *gin.Engine {
 			items.PATCH("/:id/quantity", h.UpdateItemQuantity)
 			items.DELETE("/:id", middleware.AdminOnly(), h.DeleteItem)
 		}
+
+		transactions := protected.Group("/transactions", middleware.AdminOnly())
+		{
+			transactions.GET("", h.ListTransactions)
+			transactions.POST("", h.CreateTransaction)
+			transactions.PUT("/:id", h.UpdateTransaction)
+			transactions.DELETE("/:id", h.DeleteTransaction)
+		}
+
+		recipes := protected.Group("/recipes", middleware.AdminOnly())
+		{
+			recipes.GET("", h.ListRecipes)
+			recipes.POST("", h.CreateRecipe)
+			recipes.PUT("/:id", h.UpdateRecipe)
+			recipes.DELETE("/:id", h.DeleteRecipe)
+		}
 	}
 
 	return r

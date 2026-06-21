@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { key: 'stock',      label: 'สินค้า',       icon: I.Box,    roles: ['admin', 'user'] },
   { key: 'categories', label: 'ประเภทสินค้า', icon: I.Tag,    roles: ['admin'] },
   { key: 'users',      label: 'ผู้ใช้งาน',    icon: I.Users,  roles: ['admin'] },
+  { key: 'finance',    label: 'การเงิน',      icon: I.Wallet, roles: ['admin'] },
   { key: 'profile',    label: 'โปรไฟล์',     icon: I.User,   roles: ['admin', 'user'] },
 ];
 
@@ -116,6 +117,18 @@ function App() {
   const [categories, setCategories] = React.useState([]);
   const [users,      setUsers]      = React.useState([]);
 
+  // Finance state (admin only — loaded lazily when 'finance' page opens)
+  const monthRange = () => {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const to   = now.toISOString().slice(0, 10);
+    return { from, to };
+  };
+  const [transactions, setTransactions] = React.useState([]);
+  const [txnSummary,   setTxnSummary]   = React.useState({ total_income: 0, total_expense: 0, net: 0 });
+  const [txnRange,     setTxnRange]     = React.useState(monthRange());
+  const [recipes,       setRecipes]     = React.useState([]);
+
   const toast = useToast();
 
   // ── Data loaders ──────────────────────────────────────────────────────────
@@ -123,6 +136,19 @@ function App() {
   const loadCategories = () => API.categories.list().then(setCategories).catch(() => {});
   const loadUsers      = () => API.users.list().then(setUsers).catch(() => {});
   const loadAll        = () => Promise.all([loadItems(), loadCategories(), loadUsers()]);
+
+  const loadTransactions = (range = txnRange) => API.transactions.list(range)
+    .then(res => { setTransactions(res.items); setTxnSummary(res.summary); })
+    .catch(() => {});
+  const loadRecipes = () => API.recipes.list().then(setRecipes).catch(() => {});
+
+  React.useEffect(() => {
+    if (page === 'finance' && me?.role === 'admin') {
+      loadTransactions();
+      loadRecipes();
+    }
+    // eslint-disable-next-line
+  }, [page]);
 
   // ── Check session on mount ────────────────────────────────────────────────
   React.useEffect(() => {
@@ -155,6 +181,10 @@ function App() {
   const [userModal,     setUserModal]     = React.useState({ open: false, mode: 'add', user: null });
   const [deacUserModal,    setDeacUserModal]    = React.useState({ open: false, user: null });
   const [permDelUserModal, setPermDelUserModal] = React.useState({ open: false, user: null });
+  const [txnModal,    setTxnModal]    = React.useState({ open: false, mode: 'add', transaction: null });
+  const [delTxnModal, setDelTxnModal] = React.useState({ open: false, transaction: null });
+  const [recipeModal,    setRecipeModal]    = React.useState({ open: false, mode: 'add', recipe: null });
+  const [delRecipeModal, setDelRecipeModal] = React.useState({ open: false, recipe: null });
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   // ── Auth handlers ─────────────────────────────────────────────────────────
@@ -178,11 +208,13 @@ function App() {
   const handleSaveItem = async (data) => {
     try {
       const payload = {
-        item_name:     data.name,
-        item_quantity: Number(data.qty),
-        unit:          data.unit,
-        min_quantity:  Number(data.min),
-        category_id:   data.cat ? Number(data.cat) : null,
+        item_name:      data.name,
+        item_quantity:  Number(data.qty),
+        unit:           data.unit,
+        min_quantity:   Number(data.min),
+        category_id:    data.cat ? Number(data.cat) : null,
+        package_price:  data.packagePrice  === '' || data.packagePrice  == null ? null : Number(data.packagePrice),
+        package_size_g: data.packageSizeG  === '' || data.packageSizeG  == null ? null : Number(data.packageSizeG),
       };
       if (itemModal.mode === 'edit') {
         const updated = await API.items.update(Number(data.id), payload);
@@ -310,6 +342,98 @@ function App() {
     setPermDelUserModal({ open: false, user: null });
   };
 
+  // ── Finance handlers ──────────────────────────────────────────────────────
+  const handleAddTransaction  = () => setTxnModal({ open: true, mode: 'add', transaction: null });
+  const handleEditTransaction = (t) => setTxnModal({ open: true, mode: 'edit', transaction: t });
+
+  const handleSaveTransaction = async (data) => {
+    try {
+      const payload = {
+        txn_date:       data.date,
+        type:           data.type,
+        amount:         Number(data.amount),
+        payment_method: data.paymentMethod,
+        description:    data.description,
+        handled_by:     data.handledBy || '',
+        note:           data.note || '',
+      };
+      if (txnModal.mode === 'edit') {
+        await API.transactions.update(Number(data.id), payload);
+        toast.success('บันทึกการแก้ไขเรียบร้อย');
+      } else {
+        await API.transactions.create(payload);
+        toast.success('เพิ่มรายการเรียบร้อย');
+      }
+      await loadTransactions();
+      setTxnModal({ open: false, mode: 'add', transaction: null });
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteTransaction  = (t) => setDelTxnModal({ open: true, transaction: t });
+  const confirmDeleteTransaction = async (password) => {
+    await API.transactions.delete(Number(delTxnModal.transaction.id), password);
+    await loadTransactions();
+    toast.success('ลบรายการเรียบร้อย');
+    setDelTxnModal({ open: false, transaction: null });
+  };
+
+  const handleAddRecipe  = () => setRecipeModal({ open: true, mode: 'add', recipe: null });
+  const handleEditRecipe = (r) => setRecipeModal({ open: true, mode: 'edit', recipe: r });
+
+  const handleSaveRecipe = async (data) => {
+    try {
+      // ราคาต้นทุนที่กรอกในฟอร์มสูตร เป็น property ของ item ไม่ใช่ของสูตร — อัปเดต item ก่อน
+      // จะได้คำนวณ cost ต่อถุงถูกตั้งแต่ตอน create/update สูตรนี้เลย
+      for (const ing of data.ingredients) {
+        if (ing.packagePrice == null && ing.packageSizeG == null) continue;
+        const item = items.find(i => i.id === ing.itemId);
+        if (!item) continue;
+        await API.items.update(Number(item.id), {
+          item_name:      item.name,
+          item_quantity:  item.qty,
+          unit:           item.unit,
+          min_quantity:   item.min,
+          category_id:    item.cat ? Number(item.cat) : null,
+          package_price:  ing.packagePrice  ?? (item.packagePrice  === '' ? null : item.packagePrice),
+          package_size_g: ing.packageSizeG ?? (item.packageSizeG === '' ? null : item.packageSizeG),
+        });
+      }
+      await loadItems();
+
+      const payload = {
+        name:               data.name,
+        bags_per_batch:     Number(data.bagsPerBatch),
+        sale_price_per_bag: Number(data.salePricePerBag),
+        ingredients: data.ingredients.map(i => ({
+          item_id: Number(i.itemId), quantity_g: Number(i.quantityG),
+        })),
+      };
+      if (recipeModal.mode === 'edit') {
+        await API.recipes.update(Number(data.id), payload);
+        toast.success('บันทึกการแก้ไขสูตรเรียบร้อย');
+      } else {
+        await API.recipes.create(payload);
+        toast.success(`เพิ่มสูตร "${data.name}" แล้ว`);
+      }
+      await loadRecipes();
+      setRecipeModal({ open: false, mode: 'add', recipe: null });
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteRecipe  = (r) => setDelRecipeModal({ open: true, recipe: r });
+  const confirmDeleteRecipe = async (password) => {
+    await API.recipes.delete(Number(delRecipeModal.recipe.id), password);
+    await loadRecipes();
+    toast.success('ลบสูตรเรียบร้อย');
+    setDelRecipeModal({ open: false, recipe: null });
+  };
+
+  const handleTxnRangeChange = (range) => { setTxnRange(range); loadTransactions(range); };
+
   // ── Profile handlers ──────────────────────────────────────────────────────
   const handleSaveProfile = async (info) => {
     const updated = await API.users.update(Number(me.id), {
@@ -388,6 +512,18 @@ function App() {
               onDeactivate={handleDeactivateUser}
               onPermanentDelete={handlePermanentDeleteUser}/>
           )}
+          {page === 'finance' && me.role === 'admin' && (
+            <FinancePage
+              transactions={transactions} txnSummary={txnSummary}
+              txnRange={txnRange} onRangeChange={handleTxnRangeChange}
+              onAddTransaction={handleAddTransaction}
+              onEditTransaction={handleEditTransaction}
+              onDeleteTransaction={handleDeleteTransaction}
+              recipes={recipes}
+              onAddRecipe={handleAddRecipe}
+              onEditRecipe={handleEditRecipe}
+              onDeleteRecipe={handleDeleteRecipe}/>
+          )}
           {page === 'profile' && (
             <ProfilePage
               me={me}
@@ -426,6 +562,10 @@ function App() {
                 <button className="sheet__action"
                         onClick={() => { setPage('users'); setMobileMenuOpen(false); }}>
                   <I.Users size={18}/> ผู้ใช้งาน
+                </button>
+                <button className="sheet__action"
+                        onClick={() => { setPage('finance'); setMobileMenuOpen(false); }}>
+                  <I.Wallet size={18}/> การเงิน
                 </button>
               </>
             )}
@@ -483,6 +623,22 @@ function App() {
         open={permDelUserModal.open} user={permDelUserModal.user}
         onClose={() => setPermDelUserModal({ open: false, user: null })}
         onConfirm={confirmPermanentDeleteUser}/>
+      <TransactionFormModal
+        open={txnModal.open} mode={txnModal.mode} transaction={txnModal.transaction}
+        onClose={() => setTxnModal({ open: false, mode: 'add', transaction: null })}
+        onSave={handleSaveTransaction}/>
+      <DeleteTransactionModal
+        open={delTxnModal.open} transaction={delTxnModal.transaction}
+        onClose={() => setDelTxnModal({ open: false, transaction: null })}
+        onConfirm={confirmDeleteTransaction}/>
+      <RecipeFormModal
+        open={recipeModal.open} mode={recipeModal.mode} recipe={recipeModal.recipe} items={items}
+        onClose={() => setRecipeModal({ open: false, mode: 'add', recipe: null })}
+        onSave={handleSaveRecipe}/>
+      <DeleteRecipeModal
+        open={delRecipeModal.open} recipe={delRecipeModal.recipe}
+        onClose={() => setDelRecipeModal({ open: false, recipe: null })}
+        onConfirm={confirmDeleteRecipe}/>
 
       <TweaksPanel title="Tweaks">
         <TweakSection label="Theme">

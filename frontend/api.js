@@ -22,13 +22,15 @@ async function apiFetch(path, opts = {}) {
 // API response → UI format
 function mapItem(d) {
   return {
-    id:         String(d.item_id),
-    name:       d.item_name,
-    qty:        d.item_quantity,
-    min:        d.min_quantity,
-    unit:       d.unit,
-    cat:        d.category_id ? String(d.category_id) : '',
-    isLowStock: d.is_low_stock,
+    id:            String(d.item_id),
+    name:          d.item_name,
+    qty:           d.item_quantity,
+    min:           d.min_quantity,
+    unit:          d.unit,
+    cat:           d.category_id ? String(d.category_id) : '',
+    isLowStock:    d.is_low_stock,
+    packagePrice:  d.package_price  ?? '',
+    packageSizeG:  d.package_size_g ?? '',
   };
 }
 
@@ -36,6 +38,44 @@ function mapCategory(d) {
   return {
     id:   String(d.category_id),
     name: d.category_name,
+  };
+}
+
+function mapTransaction(d) {
+  return {
+    id:             String(d.transaction_id),
+    date:           d.txn_date,
+    type:           d.type,
+    amount:         d.amount,
+    paymentMethod:  d.payment_method,
+    description:    d.description,
+    handledBy:      d.handled_by || '',
+    note:           d.note || '',
+    runningBalance: d.running_balance,
+  };
+}
+
+function mapRecipeIngredient(d) {
+  return {
+    id:              d.recipe_ingredient_id ? String(d.recipe_ingredient_id) : undefined,
+    itemId:          String(d.item_id),
+    itemName:        d.item ? d.item.item_name : '',
+    quantityG:       d.quantity_g,
+    unitCostPerGram: d.unit_cost_per_gram,
+    lineCost:        d.line_cost,
+  };
+}
+
+function mapRecipe(d) {
+  return {
+    id:              String(d.recipe_id),
+    name:            d.name,
+    bagsPerBatch:    d.bags_per_batch,
+    salePricePerBag: d.sale_price_per_bag,
+    ingredients:     (d.ingredients || []).map(mapRecipeIngredient),
+    costPerBatch:    d.cost_per_batch,
+    costPerBag:      d.cost_per_bag,
+    profitPerBag:    d.profit_per_bag,
   };
 }
 
@@ -81,6 +121,26 @@ const API = {
     delete: (id)       => apiFetch(`/categories/${id}`, { method: 'DELETE' }),
   },
 
+  transactions: {
+    list: (params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      return apiFetch('/transactions' + (qs ? '?' + qs : '')).then(res => ({
+        items:   res.items.map(mapTransaction),
+        summary: res.summary,
+      }));
+    },
+    create: (data)         => apiFetch('/transactions',     { method: 'POST',   body: data }).then(mapTransaction),
+    update: (id, data)     => apiFetch(`/transactions/${id}`, { method: 'PUT',   body: data }).then(mapTransaction),
+    delete: (id, password) => apiFetch(`/transactions/${id}`, { method: 'DELETE', body: { password } }),
+  },
+
+  recipes: {
+    list:   ()              => apiFetch('/recipes').then(list => list.map(mapRecipe)),
+    create: (data)           => apiFetch('/recipes',      { method: 'POST',   body: data }).then(mapRecipe),
+    update: (id, data)       => apiFetch(`/recipes/${id}`, { method: 'PUT',   body: data }).then(mapRecipe),
+    delete: (id, password)   => apiFetch(`/recipes/${id}`, { method: 'DELETE', body: { password } }),
+  },
+
   users: {
     list:           ()         => apiFetch('/users').then(list => list.map(mapUser)),
     create:         (data)     => apiFetch('/users',             { method: 'POST',  body: data }).then(mapUser),
@@ -91,4 +151,4 @@ const API = {
   },
 };
 
-Object.assign(window, { API, mapItem, mapCategory, mapUser });
+Object.assign(window, { API, mapItem, mapCategory, mapUser, mapTransaction, mapRecipe });

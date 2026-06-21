@@ -65,11 +65,13 @@ func (h *Handler) ListItems(c *gin.Context) {
 
 func (h *Handler) CreateItem(c *gin.Context) {
 	var req struct {
-		ItemName    string `json:"item_name" binding:"required"`
-		ItemQty     int    `json:"item_quantity"`
-		Unit        string `json:"unit" binding:"required"`
-		MinQuantity int    `json:"min_quantity"`
-		CategoryID  *uint  `json:"category_id"`
+		ItemName     string   `json:"item_name" binding:"required"`
+		ItemQty      int      `json:"item_quantity"`
+		Unit         string   `json:"unit" binding:"required"`
+		MinQuantity  int      `json:"min_quantity"`
+		CategoryID   *uint    `json:"category_id"`
+		PackagePrice *float64 `json:"package_price"`
+		PackageSizeG *float64 `json:"package_size_g"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err.Error())
@@ -81,11 +83,13 @@ func (h *Handler) CreateItem(c *gin.Context) {
 	}
 
 	item := model.Item{
-		ItemName:    req.ItemName,
-		ItemQty:     req.ItemQty,
-		Unit:        req.Unit,
-		MinQuantity: req.MinQuantity,
-		CategoryID:  req.CategoryID,
+		ItemName:     req.ItemName,
+		ItemQty:      req.ItemQty,
+		Unit:         req.Unit,
+		MinQuantity:  req.MinQuantity,
+		CategoryID:   req.CategoryID,
+		PackagePrice: req.PackagePrice,
+		PackageSizeG: req.PackageSizeG,
 	}
 	if err := h.db.Create(&item).Error; err != nil {
 		response.Error(c, http.StatusConflict, "item name already exists")
@@ -116,11 +120,13 @@ func (h *Handler) UpdateItem(c *gin.Context) {
 	}
 
 	var req struct {
-		ItemName    string `json:"item_name" binding:"required"`
-		ItemQty     int    `json:"item_quantity"`
-		Unit        string `json:"unit" binding:"required"`
-		MinQuantity int    `json:"min_quantity"`
-		CategoryID  *uint  `json:"category_id"`
+		ItemName     string   `json:"item_name" binding:"required"`
+		ItemQty      int      `json:"item_quantity"`
+		Unit         string   `json:"unit" binding:"required"`
+		MinQuantity  int      `json:"min_quantity"`
+		CategoryID   *uint    `json:"category_id"`
+		PackagePrice *float64 `json:"package_price"`
+		PackageSizeG *float64 `json:"package_size_g"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err.Error())
@@ -139,11 +145,13 @@ func (h *Handler) UpdateItem(c *gin.Context) {
 	}
 
 	if err := h.db.Model(&item).Updates(map[string]any{
-		"item_name":     req.ItemName,
-		"item_quantity": req.ItemQty,
-		"unit":          req.Unit,
-		"min_quantity":  req.MinQuantity,
-		"category_id":   req.CategoryID,
+		"item_name":      req.ItemName,
+		"item_quantity":  req.ItemQty,
+		"unit":           req.Unit,
+		"min_quantity":   req.MinQuantity,
+		"category_id":    req.CategoryID,
+		"package_price":  req.PackagePrice,
+		"package_size_g": req.PackageSizeG,
 	}).Error; err != nil {
 		response.Error(c, http.StatusConflict, "item name already exists")
 		return

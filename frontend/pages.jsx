@@ -1085,7 +1085,223 @@ function ProfilePage({ me, onSaveProfile, onChangePassword, onDeactivateSelf }) 
   );
 }
 
+// ── Finance Page ───────────────────────────────────────────────────────────
+function FinancePage({
+  transactions, txnSummary, txnRange, onRangeChange,
+  onAddTransaction, onEditTransaction, onDeleteTransaction,
+  recipes, onAddRecipe, onEditRecipe, onDeleteRecipe,
+}) {
+  const [tab, setTab] = React.useState('ledger'); // 'ledger' | 'recipes'
+  const baht = (n) => Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  return (
+    <div className="page">
+      <PageHeader
+        eyebrow="สาขาแจ้งวัฒนะ-ปากเกร็ด 19"
+        title="การเงิน"
+        subtitle="บันทึกรับ-จ่ายรายวัน และต้นทุน/กำไรต่อสูตร"
+        actions={
+          tab === 'ledger'
+            ? <Button variant="primary" icon={<I.Plus size={16}/>} onClick={onAddTransaction}>เพิ่มรายการ</Button>
+            : <Button variant="primary" icon={<I.Plus size={16}/>} onClick={onAddRecipe}>เพิ่มสูตร</Button>
+        }/>
+
+      <div className="seg-tabs">
+        <button className={`seg-tabs__btn ${tab === 'ledger' ? 'is-on' : ''}`} onClick={() => setTab('ledger')}>
+          <I.Wallet size={14}/> รายรับ-รายจ่าย
+        </button>
+        <button className={`seg-tabs__btn ${tab === 'recipes' ? 'is-on' : ''}`} onClick={() => setTab('recipes')}>
+          <I.Sparkle size={14}/> ต้นทุน/กำไร
+        </button>
+      </div>
+
+      {tab === 'ledger' ? (
+        <LedgerTab transactions={transactions} summary={txnSummary} range={txnRange}
+                   onRangeChange={onRangeChange} baht={baht}
+                   onEdit={onEditTransaction} onDelete={onDeleteTransaction}/>
+      ) : (
+        <RecipeTab recipes={recipes} baht={baht}
+                   onEdit={onEditRecipe} onDelete={onDeleteRecipe}/>
+      )}
+    </div>
+  );
+}
+
+function LedgerTab({ transactions, summary, range, onRangeChange, baht, onEdit, onDelete }) {
+  return (
+    <>
+      <Card className="filter-bar">
+        <Field label="ตั้งแต่">
+          <TextInput type="date" value={range.from}
+                     onChange={(e) => onRangeChange({ ...range, from: e.target.value })}/>
+        </Field>
+        <Field label="ถึง">
+          <TextInput type="date" value={range.to}
+                     onChange={(e) => onRangeChange({ ...range, to: e.target.value })}/>
+        </Field>
+      </Card>
+
+      <div className="dash-summary">
+        <SummaryCard icon={<I.Plus size={20}/>} tone="success" label="รับ"
+                     value={`฿${baht(summary.total_income)}`}/>
+        <SummaryCard icon={<I.Minus size={20}/>} tone="danger" label="จ่าย"
+                     value={`฿${baht(summary.total_expense)}`}/>
+        <SummaryCard icon={<I.Wallet size={20}/>} tone={summary.net >= 0 ? 'success' : 'danger'}
+                     label="กำไรสุทธิ" value={`฿${baht(summary.net)}`}/>
+      </div>
+
+      <Card className="table-card hide-mobile">
+        {transactions.length === 0 ? (
+          <EmptyState icon={<I.Wallet size={28}/>} title="ไม่มีรายการในช่วงนี้"
+                      body="ลองเปลี่ยนช่วงวันที่ หรือเพิ่มรายการใหม่"/>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>วันที่</th><th>รายการ</th><th>วิธีจ่าย</th>
+                <th className="th--right">รับ</th><th className="th--right">จ่าย</th>
+                <th className="th--right">คงเหลือสะสม</th><th>ผู้บันทึก</th>
+                <th className="th--right">การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map(t => (
+                <tr key={t.id}>
+                  <td className="td--muted">{t.date}</td>
+                  <td>
+                    {t.description}
+                    {t.note && <div className="item-card__cat">{t.note}</div>}
+                  </td>
+                  <td><span className="cell-cat">{t.paymentMethod === 'cash' ? 'เงินสด' : 'โอน'}</span></td>
+                  <td className="td--right">
+                    {t.type === 'income'
+                      ? <strong style={{ color: 'var(--color-success)' }}>+{baht(t.amount)}</strong>
+                      : <span className="td--muted">—</span>}
+                  </td>
+                  <td className="td--right">
+                    {t.type === 'expense'
+                      ? <strong style={{ color: 'var(--color-danger)' }}>-{baht(t.amount)}</strong>
+                      : <span className="td--muted">—</span>}
+                  </td>
+                  <td className="td--right td--muted">฿{baht(t.runningBalance)}</td>
+                  <td className="td--muted">{t.handledBy || '—'}</td>
+                  <td className="td--right">
+                    <div className="row-actions">
+                      <button className="icon-btn" aria-label="แก้ไข" onClick={() => onEdit(t)}>
+                        <I.Edit size={16}/>
+                      </button>
+                      <button className="icon-btn icon-btn--danger" aria-label="ลบ" onClick={() => onDelete(t)}>
+                        <I.Trash size={16}/>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      <div className="mobile-list show-mobile">
+        {transactions.length === 0 ? (
+          <Card><EmptyState icon={<I.Wallet size={28}/>} title="ไม่มีรายการในช่วงนี้"/></Card>
+        ) : transactions.map(t => (
+          <Card key={t.id} className="item-card">
+            <div className="item-card__head">
+              <div className="item-card__title">
+                <span className="item-card__name">{t.description}</span>
+                <span className="item-card__cat">
+                  {t.date} · {t.paymentMethod === 'cash' ? 'เงินสด' : 'โอน'}
+                </span>
+              </div>
+              {t.type === 'income'
+                ? <Badge tone="success">+฿{baht(t.amount)}</Badge>
+                : <Badge tone="danger">-฿{baht(t.amount)}</Badge>}
+            </div>
+            <div className="item-card__body">
+              <div className="item-card__min">คงเหลือสะสม ฿{baht(t.runningBalance)}</div>
+              <div className="item-card__min">{t.handledBy || ''}</div>
+            </div>
+            <div className="item-card__actions">
+              <button className="icon-btn icon-btn--lg" onClick={() => onEdit(t)} aria-label="แก้ไข">
+                <I.Edit size={16}/>
+              </button>
+              <button className="icon-btn icon-btn--lg icon-btn--danger" onClick={() => onDelete(t)} aria-label="ลบ">
+                <I.Trash size={16}/>
+              </button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function RecipeTab({ recipes, baht, onEdit, onDelete }) {
+  return (
+    <div className="mobile-list">
+      {recipes.length === 0 ? (
+        <Card><EmptyState icon={<I.Sparkle size={28}/>} title="ยังไม่มีสูตร"
+                          body="เพิ่มสูตรเพื่อดูต้นทุนและกำไรต่อถุง"/></Card>
+      ) : recipes.map(r => (
+        <Card key={r.id} className="item-card">
+          <div className="item-card__head">
+            <div className="item-card__title">
+              <span className="item-card__name">{r.name}</span>
+              <span className="item-card__cat">
+                {r.bagsPerBatch} ถุง/หม้อ · ขาย ฿{baht(r.salePricePerBag)}/ถุง
+              </span>
+            </div>
+            <div className="row-actions">
+              <button className="icon-btn" aria-label="แก้ไข" onClick={() => onEdit(r)}>
+                <I.Edit size={16}/>
+              </button>
+              <button className="icon-btn icon-btn--danger" aria-label="ลบ" onClick={() => onDelete(r)}>
+                <I.Trash size={16}/>
+              </button>
+            </div>
+          </div>
+
+          <table className="table">
+            <thead>
+              <tr><th>วัตถุดิบ</th><th className="th--right">ใช้ (g)</th><th className="th--right">ต้นทุน</th></tr>
+            </thead>
+            <tbody>
+              {r.ingredients.map((ing, i) => (
+                <tr key={ing.id || i}>
+                  <td>{ing.itemName || '—'}</td>
+                  <td className="td--right td--muted">{ing.quantityG.toLocaleString('th-TH')}</td>
+                  <td className="td--right td--muted">
+                    {ing.unitCostPerGram != null
+                      ? `฿${baht(ing.lineCost)}`
+                      : <Badge tone="muted">ยังไม่ตั้งราคา</Badge>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="dash-status-row">
+            <div className="dash-status-item">
+              <div className="dash-status-item__num">฿{baht(r.costPerBatch)}</div>
+              <div className="dash-status-item__label">ต้นทุน/หม้อ</div>
+            </div>
+            <div className="dash-status-item">
+              <div className="dash-status-item__num">฿{baht(r.costPerBag)}</div>
+              <div className="dash-status-item__label">ต้นทุน/ถุง</div>
+            </div>
+            <div className={`dash-status-item dash-status-item--${r.profitPerBag >= 0 ? 'ok' : 'danger'}`}>
+              <div className="dash-status-item__num">฿{baht(r.profitPerBag)}</div>
+              <div className="dash-status-item__label">กำไร/ถุง</div>
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 Object.assign(window, {
-  LoginPage, DashboardPage, CategoriesPage, UsersPage, ProfilePage,
+  LoginPage, DashboardPage, CategoriesPage, UsersPage, ProfilePage, FinancePage,
   PageHeader, SummaryCard, SortIcon,
 });
